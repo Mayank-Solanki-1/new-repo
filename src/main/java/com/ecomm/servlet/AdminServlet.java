@@ -108,7 +108,7 @@ public class AdminServlet extends HttpServlet {
     // ===============================================================
     private void loadDashboard(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
-        int totalUsers = userDAO.countUsers();
+        int totalUsers = userDAO.countUsers() -1;
         int totalProducts = productDAO.countProducts();
         int totalOrders = orderDAO.countOrders();
         //double totalRevenue = orderDAO.getTotalRevenue();

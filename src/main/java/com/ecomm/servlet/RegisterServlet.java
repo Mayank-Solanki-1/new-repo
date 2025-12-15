@@ -61,13 +61,13 @@ public class RegisterServlet extends HttpServlet {
         u.setRole(role);
 
         // Set buyer info only if role is buyer
-        if ("buyer".equals(role)) {
+
             u.setPhone(phone);
             u.setAddress(address);
             u.setCity(city);
             u.setState(state);
             u.setPincode(pincode);
-        }
+
 
         boolean ok = userDAO.save(u);
 

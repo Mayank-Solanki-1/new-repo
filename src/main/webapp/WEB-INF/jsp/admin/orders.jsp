@@ -125,6 +125,7 @@
                 <th>Buyer</th>
                 <th>Total (₹)</th>
                 <th>Status</th>
+                <th>Invoice</th>
                 <th>Processing Stage</th>
                 <th class="text-center">Action</th>
             </tr>
@@ -152,6 +153,16 @@
                                                 </c:otherwise>
                                             </c:choose>
                                         </td>
+                    <!-- Invoice -->
+
+                    <td>
+                                                       <a href="${pageContext.request.contextPath}/order/invoice?id=${o.id}"
+                                                          target="_blank" class="btn btn-sm btn-success">
+                                                           View Invoice
+                                                       </a>
+
+
+                                                    </td>
 
                     <!-- PROCESS -->
                     <td>${o.process}</td>

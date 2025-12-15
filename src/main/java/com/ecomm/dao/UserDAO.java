@@ -27,10 +27,23 @@ public class UserDAO {
     // Get all users
     public List<User> findAll() {
         List<User> list = new ArrayList<>();
-        String sql = "SELECT * FROM users ORDER BY id DESC";
-        try (Connection c = ds.getConnection(); ResultSet rs = c.createStatement().executeQuery(sql)) {
-            while (rs.next()) list.add(mapRow(rs));
-        } catch (SQLException e) { e.printStackTrace(); }
+        String sql = "SELECT * FROM users WHERE role <> 'admin'";
+
+        try (Connection con = ds.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                User u = new User();
+                u.setId(rs.getInt("id"));
+                u.setName(rs.getString("name"));
+                u.setEmail(rs.getString("email"));
+                u.setRole(rs.getString("role"));
+                list.add(u);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return list;
     }
 
