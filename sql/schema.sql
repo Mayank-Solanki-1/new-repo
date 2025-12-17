@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS products (
   description TEXT,
   price DECIMAL(10,2) NOT NULL,
   stock INT NOT NULL DEFAULT 0,
-  is_active BOOLEAN DEFAULT TRUE;
+  is_active BOOLEAN DEFAULT TRUE,
   image VARCHAR(255) DEFAULT 'default.png',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE
