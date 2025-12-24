@@ -4,8 +4,11 @@ import com.ecomm.model.Product;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ProductDAO {
+    private static final Logger logger = LoggerFactory.getLogger(ProductDAO.class);
     private final javax.sql.DataSource ds = DBPool.getDataSource();
 
     // Get all active products
@@ -59,6 +62,7 @@ public class ProductDAO {
 
     // Save new product
     public int save(Product p) {
+        logger.info("Saving new product: {}", p.getName());
         String sql = "INSERT INTO products(seller_id, name, description, image, price, stock) VALUES(?, ?, ?, ?, ?, ?)";
 
         try (Connection c = ds.getConnection();
@@ -74,10 +78,16 @@ public class ProductDAO {
             ps.executeUpdate();
 
             try (ResultSet rs = ps.getGeneratedKeys()) {
-                if (rs.next()) return rs.getInt(1);
+                if (rs.next()) {
+                    int productId = rs.getInt(1);
+                    logger.info("Product saved successfully with ID: {}", productId);
+                    return productId;
+                }
             }
 
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) {
+            logger.error("Failed to save product: {}. Error: {}", p.getName(), e.getMessage(), e);
+        }
 
         return -1;
     }

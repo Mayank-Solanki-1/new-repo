@@ -7,9 +7,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OrderDAO {
     private final DataSource ds = DBPool.getDataSource();
+    private static final Logger logger = LoggerFactory.getLogger(OrderDAO.class);
 
     // Helper class for Sellers to see items relevant to them
     public static class SellerOrderItem {
@@ -49,6 +52,7 @@ public class OrderDAO {
                                                String phone, String address,
                                                String city, String state,
                                                String pincode) throws SQLException {
+        logger.info("Creating order for buyer ID: {} with total amount: {}", buyerId, totalAmount);
 
         String updateUser = "UPDATE users SET phone=?, address=?, city=?, state=?, pincode=? WHERE id=?";
         String insertOrder = "INSERT INTO orders(buyer_id, total_amount, status, process, created_at) VALUES(?,?, 'Pending', 'Pending', NOW())";
@@ -61,8 +65,9 @@ public class OrderDAO {
         try {
             conn = ds.getConnection();
             conn.setAutoCommit(false); // START TRANSACTION
+            logger.debug("Transaction started for buyer: {}", buyerId);
 
-            System.out.println("🔄 Transaction started for buyer: " + buyerId);
+            //System.out.println("🔄 Transaction started for buyer: " + buyerId);
 
             // STEP 1: UPDATE USER INFO
             try (PreparedStatement psUser = conn.prepareStatement(updateUser)) {
@@ -73,7 +78,7 @@ public class OrderDAO {
                 psUser.setString(5, pincode);
                 psUser.setInt(6, buyerId);
                 psUser.executeUpdate();
-                System.out.println("✅ User shipping info updated");
+                //System.out.println("✅ User shipping info updated");
             }
 
             // STEP 2: INSERT ORDER
@@ -104,7 +109,7 @@ public class OrderDAO {
                     psItem.setDouble(4, item.unitPrice);
                     psItem.executeUpdate();
 
-                    System.out.println("✅ Item added - Product: " + item.productId);
+                    //System.out.println("✅ Item added - Product: " + item.productId);
 
                     // Reduce stock
                     psStock.setInt(1, item.quantity);
@@ -120,18 +125,19 @@ public class OrderDAO {
             }
 
             conn.commit(); // COMMIT TRANSACTION
-            System.out.println("✅ TRANSACTION COMMITTED - Order: " + orderId);
-
+            //System.out.println("✅ TRANSACTION COMMITTED - Order: " + orderId);
+            logger.info("Order created successfully with ID: {} for buyer: {}", orderId, buyerId);
             return orderId;
 
         } catch (SQLException ex) {
-            System.err.println("❌ ERROR: " + ex.getMessage());
+            //System.err.println("❌ ERROR: " + ex.getMessage());
+            logger.error("Failed to create order for buyer: {}. Error: {}", buyerId, ex.getMessage(), ex);
             if (conn != null) {
                 try {
-                    conn.rollback(); // ROLLBACK ON ERROR
-                    System.err.println("⏪ TRANSACTION ROLLED BACK");
+                    conn.rollback();
+                    logger.warn("Transaction rolled back for buyer: {}", buyerId);
                 } catch (SQLException rollbackEx) {
-                    System.err.println("❌ ROLLBACK FAILED: " + rollbackEx.getMessage());
+                    logger.error("Rollback failed: {}", rollbackEx.getMessage());
                 }
             }
             throw ex;

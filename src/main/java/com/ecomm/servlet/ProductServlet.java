@@ -7,6 +7,14 @@ import com.ecomm.dao.ProductDAO;
 import com.ecomm.model.Product;
 import com.ecomm.model.User;
 
+import com.ecomm.util.ValidationUtil;
+import com.ecomm.exception.InvalidUserInputException;
+import java.util.logging.Logger;
+import java.util.logging.Level;
+import java.util.ArrayList;
+
+
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
@@ -99,40 +107,83 @@ public class ProductServlet extends HttpServlet {
 
         try {
             if ("add".equals(action)) {
+                try {
+                    // Get parameters
+                    String name = req.getParameter("name");
+                    String description = req.getParameter("description");
+                    String priceStr = req.getParameter("price");
+                    String stockStr = req.getParameter("stock");
 
-                Product p = new Product();
-                p.setSellerId(user.getId());
+                    // Validate inputs
+                    List<String> errors = new ArrayList<>();
 
-                p.setName(req.getParameter("name"));
-                p.setDescription(req.getParameter("description"));
-                p.setPrice(Double.parseDouble(req.getParameter("price")));
-                p.setStock(Integer.parseInt(req.getParameter("stock")));
+                    if (!ValidationUtil.isValidName(name)) {
+                        errors.add("Product name must be between 2 and 100 characters");
+                    }
 
-                // ----------------------- FILE UPLOAD FIX -------------------------
-                Part imagePart = req.getPart("image");
-                String fileName = imagePart.getSubmittedFileName();
+                    double price = 0;
+                    try {
+                        price = Double.parseDouble(priceStr);
+                        if (!ValidationUtil.isValidPrice(price)) {
+                            errors.add("Price must be between 0 and 1,000,000");
+                        }
+                    } catch (NumberFormatException e) {
+                        errors.add("Invalid price format");
+                    }
 
-                if (fileName != null && !fileName.isEmpty()) {
+                    int stock = 0;
+                    try {
+                        stock = Integer.parseInt(stockStr);
+                        if (!ValidationUtil.isValidStock(stock)) {
+                            errors.add("Stock must be between 0 and 100,000");
+                        }
+                    } catch (NumberFormatException e) {
+                        errors.add("Invalid stock format");
+                    }
 
-                    // Folder inside webapp
-                    String uploadPath = req.getServletContext().getRealPath("product_images");
+                    // Check for errors
+                    if (!errors.isEmpty()) {
+                        req.setAttribute("errors", errors);
+                        req.setAttribute("products", productDAO.findBySeller(user.getId()));
+                        req.getRequestDispatcher("/WEB-INF/jsp/seller/products.jsp").forward(req, resp);
+                        return;
+                    }
 
-                    File uploadDir = new File(uploadPath);
-                    if (!uploadDir.exists()) uploadDir.mkdirs();
+                    // Sanitize inputs
+                    name = ValidationUtil.sanitizeInput(name);
+                    description = ValidationUtil.sanitizeInput(description);
 
-                    imagePart.write(uploadPath + File.separator + fileName);
+                    // Create product
+                    Product p = new Product();
+                    p.setSellerId(user.getId());
+                    p.setName(name);
+                    p.setDescription(description);
+                    p.setPrice(price);
+                    p.setStock(stock);
 
-                    p.setImage(fileName);
-                } else {
-                    p.setImage("default.jpg"); // optional fallback
+                    // Handle image upload
+                    Part imagePart = req.getPart("image");
+                    String fileName = imagePart.getSubmittedFileName();
+
+                    if (fileName != null && !fileName.isEmpty()) {
+                        String uploadPath = req.getServletContext().getRealPath("product_images");
+                        File uploadDir = new File(uploadPath);
+                        if (!uploadDir.exists()) uploadDir.mkdirs();
+                        imagePart.write(uploadPath + File.separator + fileName);
+                        p.setImage(fileName);
+                    } else {
+                        p.setImage("default.jpg");
+                    }
+
+                    productDAO.save(p);
+
+                } catch (Exception e) {
+                    req.setAttribute("error", "Failed to add product: " + e.getMessage());
+                    req.setAttribute("products", productDAO.findBySeller(user.getId()));
+                    req.getRequestDispatcher("/WEB-INF/jsp/seller/products.jsp").forward(req, resp);
+                    return;
                 }
-                // ------------------------------------------------------------------
-
-                productDAO.save(p);
-
-                //resp.sendRedirect(req.getContextPath() + "/seller/products");
             }
-
 
             else if ("update".equals(action)) {
                 int id = Integer.parseInt(req.getParameter("id"));
